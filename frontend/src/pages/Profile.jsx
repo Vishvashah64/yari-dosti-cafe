@@ -4,7 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import {
   Star, Mail, ShoppingBag, Clock,
-  MapPin, Phone, X, CheckCircle, DollarSign, Printer, Loader2, Trash2
+  MapPin, Phone, X, CheckCircle, DollarSign, Printer, Loader2, Trash2,
+  IndianRupee
 } from 'lucide-react';
 
 const Profile = () => {
@@ -232,7 +233,7 @@ const Profile = () => {
                           onClick={() => setShowPayModal(order)}
                           className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-2xl font-black hover:bg-black transition-all shadow-lg shadow-green-100"
                         >
-                          <DollarSign size={18} /> PAY NOW
+                          <IndianRupee size={18} /> PAY NOW
                         </button>
                       ) : (
                         <button

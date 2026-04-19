@@ -16,7 +16,7 @@ const getForgotPasswordTemplate = (otp) => {
         </div>
         
         <div>
-          <a href="https://your-website-url.com/forgot-password" style="background-color: #ea580c; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="https://yaridosti-cafe.onrender.com/forgot-password" style="background-color: #ea580c; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
             Go to Reset Page
           </a>
         </div>
@@ -49,7 +49,7 @@ const getVerificationTemplate = (otp) => {
         </div>
         
         <div>
-          <a href="https://your-website-url.com/profile" style="background-color: #ea580c; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+          <a href="https://yaridosti-cafe.onrender.com/profile" style="background-color: #ea580c; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
             Return to Profile
           </a>
         </div>
