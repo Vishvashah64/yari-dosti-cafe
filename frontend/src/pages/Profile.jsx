@@ -27,6 +27,15 @@ const Profile = () => {
     phone: user?.phone || ''
   });
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   const [paymentMode, setPaymentMode] = useState(null); // Keeps track if user picks QR or COD
   const [otp, setOtp] = useState('');
@@ -67,11 +76,36 @@ const Profile = () => {
     e.preventDefault();
     try {
       await API.put('/auth/profile', editData);
-      alert("Profile Updated!");
+      setTimeout(() => setShowSuccessPopup(false), 3000);
       setIsEditing(false);
       window.location.reload();
     } catch (err) {
       alert("Update failed.");
+    }
+  };
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    try {
+      await API.put('/auth/update-password', passwordData);
+
+      // Close the input modal and show the success popup
+      setShowPasswordModal(false);
+      setShowSuccessPopup(true);
+
+      // Reset the input fields
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+      // Automatically hide success popup after 3 seconds
+      setTimeout(() => setShowSuccessPopup(false), 3000);
+    } catch (err) {
+      const errorMsg = err.response?.data?.errors
+        ? err.response.data.errors.join(' ')
+        : err.response?.data?.message || "Update failed";
+
+      setPasswordError(errorMsg);
     }
   };
 
@@ -188,9 +222,17 @@ const Profile = () => {
               <span className="flex items-center gap-1"><Phone size={14} /> {user?.phone || 'Add Contact'}</span>
             </div>
           </div>
-          <button onClick={() => setIsEditing(true)} className="px-6 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-orange-600 transition-all">
-            Edit Profile
-          </button>
+          <div className='flex gap-3'>
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="px-6 py-3 bg-white text-gray-900 border-2 border-gray-900 rounded-2xl font-bold hover:bg-gray-50 transition-all"
+            >
+              Change Password
+            </button>
+            <button onClick={() => setIsEditing(true)} className="px-6 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-orange-600 transition-all">
+              Edit Profile
+            </button>
+          </div>
         </div>
       </div>
 
@@ -357,15 +399,86 @@ const Profile = () => {
               </>
             )}
 
-            {/* 2. EXISTING QR PAYMENT BLOCK */}
+            {/* 2. UPDATED ONLINE PAYMENT BLOCK */}
             {paymentMode === 'QR' && (
               <>
-                <h3 className="text-2xl font-black italic mb-2 uppercase">Scan & <span className="text-orange-600">Pay</span></h3>
-                <div className="bg-gray-50 p-6 rounded-[2.5rem] border-2 border-dashed border-orange-200 mb-6 flex justify-center shadow-inner">
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=vishvashah64@okhdfcbank%26pn=YariDostiCafe%26am=${showPayModal.totalAmount || showPayModal.totalPrice}%26cu=INR`} alt="UPI QR" className="w-40 h-40" />
+                <h3 className="text-2xl font-black italic mb-2 uppercase text-center">
+                  Pay <span className="text-orange-600">Online</span>
+                </h3>
+                <p className="text-[10px] font-bold text-gray-400 mb-6 uppercase text-center">
+                  Total: ₹{showPayModal.totalAmount || showPayModal.totalPrice}
+                </p>
+
+                {/* Direct UPI Intent Buttons */}
+                <div className="grid grid-cols-1 gap-3 mb-6">
+                  <p className="text-[10px] font-black text-gray-400 uppercase text-left ml-2">Open Payment App</p>
+
+                  {(() => {
+                    // Correctly encoded UPI string
+                    const upiId = "vishvashah64@okhdfcbank";
+                    const name = "Yari Dosti Cafe";
+                    const amount = showPayModal.totalAmount || showPayModal.totalPrice;
+                    const note = `Order_${showPayModal._id.slice(-6)}`;
+
+                    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+
+                    return (
+                      <div className="flex flex-col gap-2">
+                        {/* This anchor tag handles the intent for Mobile */}
+                        <a
+                          href={upiLink}
+                          target="_self"
+                          className="flex items-center justify-between p-4 bg-[#f2f2f2] active:scale-95 hover:bg-white border border-transparent hover:border-orange-500 rounded-2xl transition-all shadow-sm group"
+                        >
+                          <div className="flex flex-col items-start">
+                            <span className="font-black text-gray-800 uppercase text-xs">Pay via UPI Apps</span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase">GPay, PhonePe, Paytm</span>
+                          </div>
+                          <div className="flex gap-2 bg-white p-2 rounded-lg shadow-inner">
+                            <img src="https://www.vectorlogo.zone/logos/google/google-tile.svg" className="h-4 w-4" alt="GPay" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" className="h-4 w-4" alt="PhonePe" />
+                            <img src="https://img.icons8.com/color/48/paytm.png" className="h-4 w-4" alt="Paytm" />
+                          </div>
+                        </a>
+                        <p className="text-[8px] text-gray-400 italic mt-1 text-center">
+                          (If on Desktop, please use the QR code below)
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
-                <input type="text" placeholder="Enter 12-digit Ref No." value={txnId} onChange={(e) => setTxnId(e.target.value)} className="w-full mb-4 p-4 bg-gray-100 rounded-2xl font-bold text-sm" />
-                <button onClick={() => handleConfirmPayment(showPayModal._id)} className="w-full py-4 bg-orange-600 text-white rounded-[2rem] font-black">SUBMIT PAYMENT</button>
+
+                <div className="relative flex items-center mb-6">
+                  <div className="flex-grow border-t border-gray-200"></div>
+                  <span className="flex-shrink mx-4 text-[10px] font-black text-gray-400 uppercase">Or Scan QR</span>
+                  <div className="flex-grow border-t border-gray-200"></div>
+                </div>
+
+                {/* QR Code fallback */}
+                <div className="bg-white p-4 rounded-[2.5rem] border-2 border-dashed border-orange-200 mb-6 flex justify-center shadow-lg relative overflow-hidden">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=vishvashah64@okhdfcbank%26pn=YariDostiCafe%26am=${showPayModal.totalAmount || showPayModal.totalPrice}%26cu=INR`}
+                    alt="UPI QR"
+                    className="w-36 h-36"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-gray-400 uppercase text-left ml-2">Step 2: Enter UTR / Ref No.</p>
+                  <input
+                    type="text"
+                    placeholder="12-digit Transaction ID"
+                    value={txnId}
+                    onChange={(e) => setTxnId(e.target.value)}
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500 transition-all text-center"
+                  />
+                  <button
+                    onClick={() => handleConfirmPayment(showPayModal._id)}
+                    className="w-full py-4 bg-orange-600 text-white rounded-[2rem] font-black hover:bg-black shadow-xl shadow-orange-100 transition-all uppercase tracking-tighter"
+                  >
+                    Verify & Confirm Order
+                  </button>
+                </div>
               </>
             )}
 
@@ -396,6 +509,105 @@ const Profile = () => {
                 <button type="submit" className="flex-1 py-4 bg-orange-600 text-white rounded-2xl font-black">Save</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- UPDATE PASSWORD MODAL --- */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md p-10 rounded-[3rem] shadow-2xl relative">
+            <h3 className="text-2xl font-black mb-2 italic text-center uppercase tracking-tighter">
+              Update <span className="text-orange-600">Password</span>
+            </h3>
+            <p className="text-center text-gray-400 text-xs font-bold uppercase mb-6">Secure your account</p>
+
+            {/* --- ERROR MESSAGE DISPLAY --- */}
+            {passwordError && (
+              <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs font-bold rounded-lg animate-pulse">
+                {passwordError}
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordUpdate} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Current Password</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                  className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">New Password</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Confirm New Password</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-orange-500 outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setPasswordError(''); // Clear error on close
+                  }}
+                  className="flex-1 py-4 bg-gray-100 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-4 bg-gray-900 text-white rounded-2xl font-black hover:bg-orange-600 transition-all shadow-lg"
+                >
+                  Update
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- SUCCESS POPUP --- */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-xs p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center animate-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <h3 className="text-xl font-black uppercase tracking-tighter text-gray-900">Success!</h3>
+            <p className="text-center text-gray-500 text-sm font-bold mt-2">
+              Your password has been updated.
+            </p>
+            <button
+              onClick={() => setShowSuccessPopup(false)}
+              className="mt-6 w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-orange-600 transition-colors"
+            >
+              Awesome
+            </button>
           </div>
         </div>
       )}

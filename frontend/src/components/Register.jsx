@@ -16,7 +16,12 @@ const Register = () => {
       login(data);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      const errorData = err.response?.data;
+      if (errorData?.errors) {
+        setError(errorData.errors.join(' '));
+      } else {
+        setError(errorData?.message || 'Registration failed');
+      }
     }
   };
 

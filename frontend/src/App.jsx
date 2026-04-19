@@ -23,6 +23,7 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
       {/* 4. Protected Admin route using 'role' */}
+      <Route path="/admin/login" element={<Login />} />
       <Route
         path="/admin"
         element={

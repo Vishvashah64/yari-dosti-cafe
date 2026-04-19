@@ -10,7 +10,7 @@ const ProtectedRoute = ({ children }) => {
 
   if (!user) {
     // User is not logged in at all
-    return <Navigate to="/login" />;
+    return <Navigate to="/admin/login" />;
   }
 
   if (user.role !== 'admin') {

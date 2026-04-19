@@ -1,4 +1,5 @@
 const Menu = require("../models/Menu");
+const Order = require("../models/Order");
 
 // @desc    Get all menu items
 // @route   GET /api/menu
@@ -76,5 +77,28 @@ exports.updateMenuItem = async (req, res) => {
     res.json(updatedItem);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getMenuItemReviews = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+
+    // Ensure this matches your Order Schema: "items.menuItemId"
+    const orders = await Order.find({
+      "items.menuItemId": itemId,
+      "feedback.rating": { $gt: 0 }
+    }).populate('userId', 'name');
+
+    const reviews = orders.map(order => ({
+      userName: order.userId ? order.userId.name : "Guest",
+      rating: order.feedback.rating,
+      comment: order.feedback.comment,
+      date: order.feedback.createdAt || order.createdAt
+    }));
+
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

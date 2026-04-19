@@ -8,7 +8,7 @@ const upload = multer({ storage });
 
 // 2. IMPORT CONTROLLERS
 // Check if these names match exactly what is in menuController.js
-const { getMenu, addMenuItem, deleteMenuItem, updateMenuItem } = require("../controllers/menuController");
+const { getMenu, addMenuItem, deleteMenuItem, updateMenuItem, getMenuItemReviews } = require("../controllers/menuController");
 
 // 3. IMPORT MIDDLEWARE
 const { protect, admin } = require("../middleware/authMiddleware");
@@ -19,6 +19,7 @@ const { protect, admin } = require("../middleware/authMiddleware");
 // console.log("protect:", protect);
 
 router.get("/", getMenu); 
+router.get('/reviews/:itemId', getMenuItemReviews);
 
 // Ensure 'image' matches the name used in your React Frontend (formData.append('image', ...))
 router.post("/", protect, admin, upload.single("image"), addMenuItem);

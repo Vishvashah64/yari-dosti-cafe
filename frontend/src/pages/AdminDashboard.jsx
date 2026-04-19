@@ -4,7 +4,7 @@ import {
   TrendingUp, ShoppingBag, CheckCircle,
   Clock, DollarSign, MessageSquare, Star, ChevronRight,
   BarChart3, Plus, Trash2, Edit3, Upload, Utensils, Hash, Loader2, Check,
-  Calendar
+  Calendar, Users, ShieldAlert
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -14,7 +14,8 @@ import {
 const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
-  const [bookings, setBookings] = useState([]); // Book the table
+  const [bookings, setBookings] = useState([]);
+  const [users, setUsers] = useState([]); // NEW: State for Users
   const [tableInputs, setTableInputs] = useState({});
   const [view, setView] = useState('orders');
   const [loading, setLoading] = useState(true);
@@ -25,14 +26,16 @@ const AdminDashboard = () => {
   // --- 1. DATA FETCHING ---
   const fetchData = async () => {
     try {
-      const [orderRes, menuRes, bookingRes] = await Promise.all([
+      const [orderRes, menuRes, bookingRes, userRes] = await Promise.all([
         API.get('/order/all'),
         API.get('/menu'),
-        API.get('/booking/all') // Add this
+        API.get('/booking/all'),
+        API.get('/admin/users') // NEW: Admin Route
       ]);
       setOrders(orderRes.data);
       setMenuItems(menuRes.data);
-      setBookings(bookingRes.data); // Add this
+      setBookings(bookingRes.data);
+      setUsers(userRes.data); // NEW
     } catch (err) {
       console.error("Error fetching data", err);
     } finally {
@@ -46,17 +49,42 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // --- 2. PAYMENT & ORDER ACTIONS (THE FIX) ---
+  // --- NEW: ADMIN ACTIONS ---
+  const deleteUser = async (id) => {
+    if (window.confirm("Are you sure you want to delete this user? This cannot be undone.")) {
+      try {
+        await API.delete(`/admin/users/${id}`);
+        fetchData();
+      } catch (err) { alert("Failed to delete user"); }
+    }
+  };
+
+  const deleteOrder = async (id) => {
+    if (window.confirm("Delete this order from history?")) {
+      try {
+        await API.delete(`/admin/orders/${id}`);
+        fetchData();
+      } catch (err) { alert("Failed to delete order"); }
+    }
+  };
+
+  const deleteReview = async (orderId) => {
+    if (window.confirm("Clear this review content? The order will remain.")) {
+      try {
+        await API.delete(`/admin/orders/clear-review/${orderId}`);
+        fetchData();
+      } catch (err) { alert("Failed to clear review"); }
+    }
+  };
+
+  // --- EXISTING: PAYMENT & ORDER ACTIONS ---
   const verifyPayment = async (orderId) => {
     try {
-      // 1. Send BOTH the status 'Paid' and a unique ID
       const response = await API.put(`/order/${orderId}/pay`, {
         paymentStatus: 'Paid',
         transactionId: `VERIFIED_${Date.now()}`
       });
-
       if (response.status === 200) {
-        // 2. Refresh the whole list from the database to confirm it's saved
         fetchData();
         console.log("Database update confirmed!");
       }
@@ -69,19 +97,16 @@ const AdminDashboard = () => {
   const updateStatus = async (orderId, newStatus) => {
     try {
       await API.put(`/order/${orderId}/status`, { status: newStatus });
-
-      // Auto-verify payment if marked as Completed
       if (newStatus === 'Completed') {
         await verifyPayment(orderId);
       }
-
       fetchData();
     } catch (err) {
       alert("Failed to update status.");
     }
   };
 
-  // --- 3. MENU MANAGEMENT ACTIONS ---
+  // --- EXISTING: MENU MANAGEMENT ACTIONS ---
   const handleMenuSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData();
@@ -104,7 +129,7 @@ const AdminDashboard = () => {
       alert("Failed to save menu item");
     }
   };
-  
+
   const deleteMenuItem = async (id) => {
     if (window.confirm("Delete this item forever?")) {
       try {
@@ -116,7 +141,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Update booking status 
   const updateBookingStatus = async (bookingId, newStatus, tableNumber) => {
     try {
       await API.put(`/booking/${bookingId}/status`, { status: newStatus, tableNumber });
@@ -130,9 +154,10 @@ const AdminDashboard = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // --- 4. ANALYTICS LOGIC ---
+  // --- ANALYTICS LOGIC ---
   const totalRevenue = orders.filter(o => o.paymentStatus === 'Paid').reduce((acc, curr) => acc + (curr.totalAmount || curr.totalPrice || 0), 0);
   const pendingOrders = orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length;
+  // Note: Updated ratedOrders check to match your feedback structure
   const ratedOrders = orders.filter(o => o.feedback && o.feedback.rating > 0);
   const avgRating = ratedOrders.length > 0 ? (ratedOrders.reduce((acc, curr) => acc + curr.feedback.rating, 0) / ratedOrders.length).toFixed(1) : "5.0";
 
@@ -164,7 +189,8 @@ const AdminDashboard = () => {
         <nav className="space-y-2">
           <AdminNavLink active={view === 'overview'} onClick={() => setView('overview')} icon={<TrendingUp size={20} />} label="Analytics" />
           <AdminNavLink active={view === 'orders'} onClick={() => setView('orders')} icon={<ShoppingBag size={20} />} label="Live Orders" />
-          <AdminNavLink active={view === 'bookings'} onClick={() => setView('bookings')} icon={<Calendar size={20} />} label="Bookings" /> {/* ADDED */}
+          <AdminNavLink active={view === 'users'} onClick={() => setView('users')} icon={<Users size={20} />} label="Manage Users" />
+          <AdminNavLink active={view === 'bookings'} onClick={() => setView('bookings')} icon={<Calendar size={20} />} label="Bookings" />
           <AdminNavLink active={view === 'menu'} onClick={() => setView('menu')} icon={<Utensils size={20} />} label="Manage Menu" />
           <AdminNavLink active={view === 'feedback'} onClick={() => setView('feedback')} icon={<MessageSquare size={20} />} label="User Reviews" />
         </nav>
@@ -212,7 +238,7 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* ORDERS SECTION (THE FIX IS HERE) */}
+          {/* ORDERS SECTION */}
           {view === 'orders' && (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
@@ -223,6 +249,7 @@ const AdminDashboard = () => {
                     <th className="p-6 text-[10px] font-black uppercase text-gray-400">Bill</th>
                     <th className="p-6 text-[10px] font-black uppercase text-gray-400">Payment Status</th>
                     <th className="p-6 text-[10px] font-black uppercase text-gray-400">Progress</th>
+                    <th className="p-6 text-[10px] font-black uppercase text-gray-400 text-right">Delete</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -265,6 +292,11 @@ const AdminDashboard = () => {
                           <option value="Cancelled">Cancelled</option>
                         </select>
                       </td>
+                      <td className="p-6 text-right">
+                        <button onClick={() => deleteOrder(order._id)} className="p-3 text-gray-300 hover:text-red-600 transition-colors">
+                          <Trash2 size={20} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -272,7 +304,51 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* BOOKINGS VIEW - The part you requested */}
+          {/* NEW: USERS MANAGEMENT SECTION */}
+          {view === 'users' && (
+            <div className="p-10">
+              <HeaderTitle title="Manage Users" subtitle="Active Customers & Staff" icon={<Users size={24} />} />
+              <div className="overflow-x-auto bg-gray-50/50 rounded-[2rem] border border-gray-100">
+                <table className="w-full text-left">
+                  <thead className="border-b">
+                    <tr>
+                      <th className="p-6 text-[10px] font-black uppercase text-gray-400">User Profile</th>
+                      <th className="p-6 text-[10px] font-black uppercase text-gray-400">Role</th>
+                      <th className="p-6 text-[10px] font-black uppercase text-gray-400">Joined</th>
+                      <th className="p-6 text-[10px] font-black uppercase text-gray-400 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {users.map(u => (
+                      <tr key={u._id} className="hover:bg-white transition-all">
+                        <td className="p-6">
+                          <p className="font-bold text-gray-800">{u.name}</p>
+                          <p className="text-xs text-gray-400">{u.email}</p>
+                        </td>
+                        <td className="p-6">
+                          <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${u.role === 'admin' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                            {u.role || 'user'}
+                          </span>
+                        </td>
+                        <td className="p-6 text-xs font-bold text-gray-500">
+                          {new Date(u.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="p-6 text-right">
+                          {u.role !== 'admin' && (
+                            <button onClick={() => deleteUser(u._id)} className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all">
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* BOOKINGS VIEW */}
           {view === 'bookings' && (
             <div className="overflow-x-auto">
               <HeaderTitle title="Table Bookings" subtitle="Manage table assignments" icon={<Calendar size={24} />} />
@@ -334,7 +410,7 @@ const AdminDashboard = () => {
                     <input type="text" placeholder="Dish Name" required className="w-full bg-white border-none rounded-2xl p-4 text-sm font-bold shadow-sm" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                     <input type="number" placeholder="Price (₹)" required className="w-full bg-white border-none rounded-2xl p-4 text-sm font-bold shadow-sm" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
                     <select className="w-full bg-white border-none rounded-2xl p-4 text-sm font-bold shadow-sm" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
-                      <option>Main Course</option><option>Starters</option><option>Beverages</option><option>Desserts</option>
+                      <option>Main Course</option><option>Starters</option><option>Beverages</option><option>Chai & Gosips</option><option>Dosti Combos</option><option>Desserts</option>
                     </select>
                     <textarea placeholder="Description" className="w-full bg-white border-none rounded-2xl p-4 text-sm font-bold shadow-sm h-24" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
                     <label className="flex flex-col items-center justify-center w-full bg-white border-2 border-dashed rounded-2xl p-4 cursor-pointer hover:border-orange-500">
@@ -365,18 +441,30 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* FEEDBACK SECTION */}
+          {/* FEEDBACK SECTION (UPDATED with Delete) */}
           {view === 'feedback' && (
-            <div className="p-8 grid md:grid-cols-2 gap-6">
-              {ratedOrders.length > 0 ? ratedOrders.map(order => (
-                <div key={order._id} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
-                  <div className="flex justify-between items-start mb-4">
-                    <p className="font-bold text-gray-800 uppercase text-xs tracking-tighter">{order.userId?.name || 'Anonymous'}</p>
-                    <div className="flex text-yellow-500">{[...Array(order.feedback.rating)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}</div>
+            <div className="p-10">
+              <HeaderTitle title="User Reviews" subtitle="Feedback from customers" icon={<MessageSquare size={24} />} />
+              <div className="grid md:grid-cols-2 gap-6">
+                {ratedOrders.length > 0 ? ratedOrders.map(order => (
+                  <div key={order._id} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 relative group">
+                    <button
+                      onClick={() => deleteReview(order._id)}
+                      className="absolute top-6 right-6 p-2 bg-white text-gray-300 hover:text-red-600 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <div className="flex justify-between items-start mb-4">
+                      <p className="font-bold text-gray-800 uppercase text-xs tracking-tighter">{order.userId?.name || 'Anonymous'}</p>
+                      <div className="flex text-yellow-500 mr-8">
+                        {[...Array(order.feedback.rating)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 italic font-medium leading-relaxed">"{order.feedback.comment || 'The food was great!'}"</p>
+                    <p className="text-[10px] font-black text-gray-300 mt-4 uppercase">Order: #{order._id.slice(-6)}</p>
                   </div>
-                  <p className="text-sm text-gray-600 italic font-medium leading-relaxed">"{order.feedback.comment || 'The food was great!'}"</p>
-                </div>
-              )) : <p className="col-span-2 text-center text-gray-400 py-10 font-bold uppercase">No reviews yet.</p>}
+                )) : <p className="col-span-2 text-center text-gray-400 py-10 font-bold uppercase">No reviews yet.</p>}
+              </div>
             </div>
           )}
 
@@ -387,7 +475,6 @@ const AdminDashboard = () => {
 };
 
 // --- HELPER SUB-COMPONENTS ---
-
 const AdminNavLink = ({ active, onClick, icon, label }) => (
   <button onClick={onClick} className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl font-bold transition-all ${active ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}>
     <div className="flex items-center gap-4">{icon} {label}</div>
