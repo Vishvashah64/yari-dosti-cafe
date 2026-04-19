@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API = axios.create({ baseURL: process.env.BACKEND_URL });
+const API = axios.create({ baseURL: import.meta.env.VITE_BACKEND_URL });
 
 // This automatically attaches your JWT token to every request
 API.interceptors.request.use((req) => {
