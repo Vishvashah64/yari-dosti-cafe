@@ -1,8 +1,8 @@
 import React from 'react';
 import Navbar from '../components/Navbar';
-import { 
-  Clock, Users, Utensils, ArrowRight, 
-  BubblesIcon, Heart, Coffee, ShieldCheck 
+import {
+  Clock, Users, Utensils, ArrowRight,
+  BubblesIcon, Heart, Coffee, ShieldCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -10,13 +10,13 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-[#fafafa] selection:bg-orange-100 font-sans">
       <Navbar />
-      
+
       {/* 1. CINEMATIC HERO SECTION */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2047" 
-            className="w-full h-full object-cover" 
+          <img
+            src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2047"
+            className="w-full h-full object-cover"
             alt="Cafe Aesthetic"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/80"></div>
@@ -41,19 +41,19 @@ const Home = () => {
             </Link>
           </div>
         </div>
-        
+
         {/* Decorative Scroll Indicator */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-           <div className="w-[1px] h-20 bg-gradient-to-b from-orange-500 to-transparent"></div>
-           <p className="text-[10px] text-white font-black uppercase tracking-widest vertical-text">Scroll</p>
+          <div className="w-[1px] h-20 bg-gradient-to-b from-orange-500 to-transparent"></div>
+          <p className="text-[10px] text-white font-black uppercase tracking-widest vertical-text">Scroll</p>
         </div>
       </section>
 
       {/* 2. THE PHILOSOPHY (STORY) */}
       <section className="py-32 max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-20 items-center">
         <div className="relative">
-          <img 
-            src="https://images.unsplash.com/photo-1559925393-8be0ec41b504?q=80&w=2071" 
+          <img
+            src="https://th.bing.com/th/id/OIP.o5tSLtj5gakRICh8JeP1kgHaE7?w=274&h=183&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3"
             className="rounded-[3rem] shadow-2xl z-10 relative"
             alt="Cafe Vibe"
           />
@@ -86,22 +86,22 @@ const Home = () => {
             <h2 className="text-white text-5xl font-black mb-4 uppercase">The Aesthetic</h2>
             <p className="text-gray-400 font-medium">Capture the moments. Share the dosti.</p>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 h-[600px]">
             <div className="bg-gray-800 rounded-3xl overflow-hidden row-span-2">
               <img src="https://images.unsplash.com/photo-1521017432531-fbd92d768814?q=80&w=2070" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="Gallery" />
             </div>
             <div className="bg-gray-800 rounded-3xl overflow-hidden">
-               <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2070" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="Gallery" />
+              <img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2070" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="Gallery" />
             </div>
             <div className="bg-gray-800 rounded-3xl overflow-hidden col-span-2">
-               <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="Gallery" />
+              <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="Gallery" />
             </div>
             <div className="bg-gray-800 rounded-3xl overflow-hidden col-span-2">
-               <img src="https://images.unsplash.com/photo-1551887139-147677950274?q=80&w=2070" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="Gallery" />
+              <img src="https://th.bing.com/th/id/OIP.o5tSLtj5gakRICh8JeP1kgHaE7?w=274&h=183&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="Gallery" />
             </div>
             <div className="bg-gray-800 rounded-3xl overflow-hidden">
-               <img src="https://images.unsplash.com/photo-1442512595331-e89e73853f31?q=80&w=2070" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="Gallery" />
+              <img src="https://images.unsplash.com/photo-1442512595331-e89e73853f31?q=80&w=2070" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="Gallery" />
             </div>
           </div>
         </div>
@@ -136,9 +136,9 @@ const Home = () => {
             READY TO MAKE <br /> SOME MEMORIES?
           </h2>
           <div className="flex gap-4">
-             <Link to="/booking" className="bg-black text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-2xl">
-                Book A Table
-             </Link>
+            <Link to="/booking" className="bg-black text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-2xl">
+              Book A Table
+            </Link>
           </div>
         </div>
       </section>

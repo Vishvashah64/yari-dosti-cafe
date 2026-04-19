@@ -1,19 +1,24 @@
 const express = require("express");
 const router = express.Router();
-const { 
-  createOrder, 
-  getMyOrders, 
-  updateOrderStatus, 
+const {
+  createOrder,
+  getMyOrders,
+  updateOrderStatus,
   getAllOrders,
   processPayment,
   getBillDetails,
   addOrderFeedback,
-  cancelOrder
+  cancelOrder,
+  verifyOrderOtp,
+  sendCodOtp
 } = require("../controllers/orderController");
 const { protect, admin } = require("../middleware/authMiddleware");
 
 router.get("/all", protect, admin, getAllOrders);
 router.post('/', protect, createOrder);
+// Add this route
+router.post('/:id/send-otp', protect, sendCodOtp);
+router.post('/verify-otp', protect, verifyOrderOtp);
 router.get('/myorders', protect, getMyOrders)
 router.put("/:id/status", protect, admin, updateOrderStatus); // Only Admin can change status (Pending -> Preparing -> Completed)
 router.delete('/:id/cancel', cancelOrder)

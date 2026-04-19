@@ -10,9 +10,10 @@ const bookingSchema = new mongoose.Schema({
   guests: { type: Number, required: true },
   status: {
     type: String,
-    enum: ["Pending", "Confirmed"],
+    enum: ["Pending", "Confirmed", "Cancelled"],
     default: "Pending"
-  }
-});
+  },
+  tableNumber: { type: String, default: null }
+}, { timestamps: true });
 
 module.exports = mongoose.model("Booking", bookingSchema);

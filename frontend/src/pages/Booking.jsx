@@ -120,7 +120,7 @@ const Booking = () => {
                 className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none font-medium appearance-none"
                 onChange={(e) => setFormData({...formData, guests: e.target.value})}
               >
-                {[1, 2, 3, 4, 5, 6, 8, 10].map(num => (
+                {[2, 3, 4, 5, 6, 8, 10].map(num => (
                   <option key={num} value={num}>{num} {num === 1 ? 'Person' : 'People'}</option>
                 ))}
               </select>

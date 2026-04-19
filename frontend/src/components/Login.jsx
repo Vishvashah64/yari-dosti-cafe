@@ -26,35 +26,42 @@ const Login = () => {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Welcome Back</h2>
         <p className="text-center text-gray-500 mb-8">Grab your coffee and settle in.</p>
-        
+
         {error && <div className="bg-red-100 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">Email Address</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none transition"
               placeholder="friend@yaridosti.com"
               onChange={(e) => setEmail(e.target.value)}
-              required 
+              required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input 
-              type="password" 
+            <div className='flex items-center justify-between'>
+              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <div className="text-right mt-2">
+                <Link to="/forgot-password" className="text-xs text-orange-600 font-bold hover:underline">
+                  Forgot Password
+                </Link>
+              </div>
+            </div>
+            <input
+              type="password"
               className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none transition"
               placeholder="••••••••"
               onChange={(e) => setPassword(e.target.value)}
-              required 
+              required
             />
           </div>
           <button type="submit" className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors shadow-lg">
             Sign In
           </button>
         </form>
-        
+
         <p className="mt-6 text-center text-sm text-gray-600">
           New to the cafe? <Link to="/register" className="text-orange-600 font-bold hover:underline">Create an account</Link>
         </p>

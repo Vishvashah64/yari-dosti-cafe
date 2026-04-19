@@ -1,44 +1,87 @@
 const Order = require("../models/Order");
 const Menu = require("../models/Menu");
+const sendEmail = require("../utils/sendEmail");
+const { getVerificationTemplate } = require("../utils/emailTemplate");
 
 // @desc    Create new order
 // @route   POST /api/order
+// Updated createOrder
 exports.createOrder = async (req, res) => {
   try {
-    const { items } = req.body;
-
-    if (!items || items.length === 0) {
-      return res.status(400).json({ message: "Cart is empty" });
-    }
+    const { items, address, phone } = req.body;
 
     let calculatedTotal = 0;
     const finalOrderItems = [];
-
     for (const item of items) {
       const menuItem = await Menu.findById(item.menuId);
       if (menuItem) {
-        // Calculate the price for this item
-        const itemSubtotal = menuItem.price * item.quantity;
-        calculatedTotal += itemSubtotal;
-
-        finalOrderItems.push({
-          menuItemId: menuItem._id,
-          name: menuItem.name,
-          qty: item.quantity,
-          price: menuItem.price
-        });
+        calculatedTotal += menuItem.price * item.quantity;
+        finalOrderItems.push({ menuItemId: menuItem._id, name: menuItem.name, qty: item.quantity, price: menuItem.price });
       }
     }
 
-    // CRITICAL: Ensure this matches your Schema (totalAmount, not totalPrice)
     const newOrder = new Order({
       userId: req.user._id,
       items: finalOrderItems,
-      totalAmount: calculatedTotal // <-- Use this name
+      totalAmount: calculatedTotal,
+      shippingAddress: address,
+      shippingPhone: phone,
+      paymentMethod: "COD",
+      paymentStatus: "Unpaid",
+      status: "Pending"
+      // OTP logic removed from here
     });
 
     const savedOrder = await newOrder.save();
-    res.status(201).json(savedOrder);
+
+    res.status(201).json({
+      orderId: savedOrder._id,
+      message: "Order placed successfully!"
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.sendCodOtp = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    order.otp = otp;
+    order.otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+    await order.save();
+
+    // Send Email
+    const htmlContent = getVerificationTemplate(otp);
+    await sendEmail(req.user.email, "Verify Your Order - Yari Dosti", htmlContent);
+
+    res.json({ message: "OTP sent to your email!" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to send OTP" });
+  }
+};
+
+exports.verifyOrderOtp = async (req, res) => {
+  try {
+    const { orderId, otp } = req.body;
+    const order = await Order.findById(orderId);
+
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // Check OTP
+    if (order.otp === otp && order.otpExpires > Date.now()) {
+      order.paymentStatus = "Unpaid"; // Verified COD
+      order.status = "Confirmed";    // Now Admin knows it's a real order
+      order.otp = undefined;         // Clear OTP
+      await order.save();
+
+      res.json({ message: "Payment Verified & Order Confirmed!" });
+    } else {
+      res.status(400).json({ message: "Invalid or expired OTP" });
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -155,16 +198,16 @@ exports.addOrderFeedback = async (req, res) => {
 exports.cancelOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
-
     if (!order) return res.status(404).json({ message: "Order not found" });
 
-    // Important: Only allow cancellation if it's still pending
-    if (order.status !== 'Pending') {
-      return res.status(400).json({ message: "Order is already being prepared!" });
+    // Allow cancellation only if not already completed or shipped
+    if (order.status === 'Completed' || order.status === 'Shipped') {
+      return res.status(400).json({ message: "Cannot cancel a completed/shipped order." });
     }
 
-    await Order.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Order cancelled" });
+    order.status = 'Cancelled';
+    await order.save(); // Just update, don't delete!
+    res.status(200).json({ message: "Order cancelled successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

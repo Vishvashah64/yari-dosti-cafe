@@ -44,7 +44,7 @@ const Menu = () => {
   const handleCheckout = async () => {
     if (!user) return alert("Please login first!");
     if (cart.length === 0) return alert("Your bag is empty!");
-    
+
     try {
       const orderData = {
         items: cart.map(item => ({
@@ -54,10 +54,10 @@ const Menu = () => {
       };
 
       await API.post('/order', orderData);
-      alert("Order Placed Successfully!");
+      alert("Order Placed! Please go to your Profile to complete payment/verification.");
       setCart([]);
       setIsCartOpen(false);
-      navigate('/profile'); 
+      navigate('/profile');
     } catch (err) {
       alert("Order Failed: " + err.response?.data?.message);
     }
@@ -68,7 +68,7 @@ const Menu = () => {
   return (
     <div className="min-h-screen bg-[#FDFCFB] text-gray-900 pb-20">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-6 py-16">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
@@ -78,9 +78,9 @@ const Menu = () => {
               Our <span className="text-orange-600 italic">Menu</span>
             </h2>
           </div>
-          
-          <button 
-            onClick={() => setIsCartOpen(true)} 
+
+          <button
+            onClick={() => setIsCartOpen(true)}
             className="group relative flex items-center gap-4 bg-white px-8 py-4 shadow-2xl rounded-full border border-gray-100 hover:bg-black hover:text-white transition-all duration-500"
           >
             <div className="flex flex-col items-start">
@@ -102,10 +102,10 @@ const Menu = () => {
             <div key={item._id} className="group bg-white rounded-[3rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-gray-50 flex flex-col">
               {/* Image Container */}
               <div className="relative h-72 overflow-hidden">
-                <img 
-                  src={item.image} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                  alt={item.name} 
+                <img
+                  src={item.image}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  alt={item.name}
                 />
                 <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
                   {item.category || 'Popular'}
@@ -125,12 +125,12 @@ const Menu = () => {
                 </p>
 
                 <div className="flex items-center gap-4 mb-8 text-[10px] font-black uppercase text-gray-400">
-                  <span className="flex items-center gap-1"><Clock size={12}/> 15-20 Min</span>
-                  <span className="flex items-center gap-1 text-orange-500"><Star size={12} fill="currentColor"/> 4.8</span>
+                  <span className="flex items-center gap-1"><Clock size={12} /> 15-20 Min</span>
+                  <span className="flex items-center gap-1 text-orange-500"><Star size={12} fill="currentColor" /> 4.8</span>
                 </div>
 
-                <button 
-                  onClick={() => addToCart(item)} 
+                <button
+                  onClick={() => addToCart(item)}
                   className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-orange-600 transition-colors shadow-lg shadow-gray-200"
                 >
                   Add to Cart
@@ -144,11 +144,11 @@ const Menu = () => {
       {/* --- PREMIUM CART DRAWER --- */}
       {isCartOpen && (
         <div className="fixed inset-0 z-[100] flex justify-end">
-          <div 
-            className="absolute inset-0 bg-black/40 backdrop-blur-md transition-opacity" 
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-md transition-opacity"
             onClick={() => setIsCartOpen(false)}
           ></div>
-          
+
           <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-500">
             {/* Drawer Header */}
             <div className="p-10 flex justify-between items-center border-b border-gray-50">
@@ -156,14 +156,14 @@ const Menu = () => {
                 <h3 className="text-4xl font-black tracking-tighter uppercase italic">My <span className="text-orange-600">Order</span></h3>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Yari Dosti Cafe</p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsCartOpen(false)}
                 className="p-3 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <X size={24} />
               </button>
             </div>
-            
+
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto px-10 py-8 space-y-8">
               {cart.length === 0 ? (
@@ -180,9 +180,9 @@ const Menu = () => {
                       <p className="text-orange-600 font-bold text-sm">₹{item.price}</p>
                     </div>
                     <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-xl border border-gray-100">
-                      <button onClick={() => removeFromCart(item)} className="p-1 hover:text-orange-600 transition-colors"><Minus size={16}/></button>
+                      <button onClick={() => removeFromCart(item)} className="p-1 hover:text-orange-600 transition-colors"><Minus size={16} /></button>
                       <span className="font-black text-sm w-4 text-center">{item.qty}</span>
-                      <button onClick={() => addToCart(item)} className="p-1 hover:text-orange-600 transition-colors"><Plus size={16}/></button>
+                      <button onClick={() => addToCart(item)} className="p-1 hover:text-orange-600 transition-colors"><Plus size={16} /></button>
                     </div>
                   </div>
                 ))
@@ -205,9 +205,9 @@ const Menu = () => {
                   <span className="text-orange-600">₹{totalPrice}</span>
                 </div>
               </div>
-              
-              <button 
-                onClick={handleCheckout} 
+
+              <button
+                onClick={handleCheckout}
                 disabled={cart.length === 0}
                 className="w-full py-6 bg-black text-white rounded-[2rem] font-black text-lg hover:bg-orange-600 disabled:bg-gray-200 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-3 shadow-xl"
               >

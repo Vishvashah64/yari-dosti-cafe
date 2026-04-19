@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { register, login, updateUserProfile } = require("../controllers/authController");
+const { register, login, updateUserProfile, forgotPassword, verifyOtp, resetPassword } = require("../controllers/authController");
 const { protect } = require("../middleware/authMiddleware");
 
 // Public routes
@@ -11,6 +11,10 @@ router.post("/login", login);
 router.get("/profile", protect, async (req, res) => {
   res.json(req.user);
 });
-router.put('/profile', protect, updateUserProfile); 
+router.put('/profile', protect, updateUserProfile);
 // 'protect' ensures the user is logged in before updating
+
+router.post("/forgot-password", forgotPassword);
+router.post("/verify-otp", verifyOtp);
+router.post("/reset-password", resetPassword);
 module.exports = router;

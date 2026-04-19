@@ -12,6 +12,7 @@ const Profile = () => {
   const [orders, setOrders] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [feedbackComment, setFeedbackComment] = useState('');
   const [activeTab, setActiveTab] = useState('orders');
 
   // Payment & Editing State
@@ -24,6 +25,23 @@ const Profile = () => {
     address: user?.address || '',
     phone: user?.phone || ''
   });
+
+
+  const [paymentMode, setPaymentMode] = useState(null); // Keeps track if user picks QR or COD
+  const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  const handleCodVerify = async () => {
+    try {
+      await API.post('/order/verify-otp', { orderId: showPayModal._id, otp });
+      alert("Order Verified & Confirmed!");
+      setShowPayModal(null); // Close modal
+      setPaymentMode(null);  // Reset
+      fetchProfileData();    // Refresh orders
+    } catch (err) {
+      alert(err.response?.data?.message || "Invalid OTP");
+    }
+  };
 
   useEffect(() => {
     fetchProfileData();
@@ -69,6 +87,15 @@ const Profile = () => {
     }
   };
 
+  const handleCancelBooking = async (bookingId) => {
+    if (window.confirm("Cancel this booking?")) {
+      try {
+        await API.delete(`/booking/${bookingId}`);
+        fetchProfileData();
+      } catch (err) { alert("Cancellation failed"); }
+    }
+  };
+
   // --- SECURE PAYMENT WITH TXN ID ---
   const handleConfirmPayment = async (orderId) => {
     if (txnId.trim().length < 8) {
@@ -94,18 +121,17 @@ const Profile = () => {
 
   const submitFeedback = async (orderId, rating) => {
     try {
-      // 1. Send feedback to backend (ensure rating is a Number)
-      await API.put(`/order/${orderId}/feedback`, { rating: Number(rating) });
+      await API.put(`/order/${orderId}/feedback`, {
+        rating: Number(rating),
+        comment: feedbackComment
+      });
 
-      // 2. Alert the user
-      alert("Thanks for the rating!");
-
-      // 3. CRITICAL: Refresh the data so 'order.feedback.rating' is populated 
-      // and the "Thank you" message appears instead of the stars.
-      await fetchProfileData();
+      alert("Thanks for your feedback!");
+      setFeedbackComment(''); // Reset comment
+      fetchProfileData(); // Refresh to see the change instantly
     } catch (err) {
       console.error("Feedback error:", err);
-      alert("Error saving feedback. Please try again.");
+      alert(err.response?.data?.message || "Error saving feedback.");
     }
   };
 
@@ -223,19 +249,38 @@ const Profile = () => {
                 {(order.paymentStatus === 'Paid' || order.paymentStatus === 'Pending Verification') && (
                   <div className="border-t border-gray-50 pt-4 text-center">
                     {!order.feedback?.rating ? (
-                      <div className="flex items-center justify-center flex-col gap-2">
-                        <p className="text-[10px] font-black text-gray-400 uppercase italic">Rate your meal</p>
-                        <div className="flex gap-2">
+                      <div className="flex flex-col gap-3 p-4 bg-gray-50 rounded-2xl">
+                        <p className="text-xs font-black text-gray-400 uppercase italic text-center">Rate your meal</p>
+
+                        {/* Stars */}
+                        <div className="flex justify-center gap-2">
                           {[1, 2, 3, 4, 5].map((num) => (
-                            <button key={num} onClick={() => submitFeedback(order._id, num)} className="text-gray-200 hover:text-orange-500 transition-colors">
+                            <button
+                              key={num}
+                              onClick={() => submitFeedback(order._id, num)}
+                              className="text-gray-300 hover:text-orange-500 transition-colors"
+                            >
                               <Star size={24} fill="currentColor" />
                             </button>
                           ))}
                         </div>
+
+                        {/* Comment Input */}
+                        <input
+                          type="text"
+                          placeholder="Write a review (optional)..."
+                          value={feedbackComment}
+                          onChange={(e) => setFeedbackComment(e.target.value)}
+                          className="w-full p-3 rounded-xl border border-gray-200 text-sm font-medium"
+                        />
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center gap-2 text-green-600 font-bold text-sm">
-                        <CheckCircle size={16} /> Rated {order.feedback.rating}/5 stars
+                      <div className="flex flex-col items-center gap-1 text-green-600 font-bold text-sm">
+                        <CheckCircle size={20} />
+                        <span>Rated {order.feedback.rating}/5 stars</span>
+                        {order.feedback.comment && (
+                          <p className="text-gray-500 italic text-xs mt-1">"{order.feedback.comment}"</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -246,10 +291,32 @@ const Profile = () => {
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
             {bookings.map(book => (
-              <div key={book._id} className="bg-white p-6 rounded-[2rem] border-l-8 border-orange-500 shadow-sm">
+              <div key={book._id} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm relative">
                 <p className="text-xl font-bold text-gray-800 italic uppercase">{book.date} @ {book.time}</p>
                 <p className="text-gray-500 font-medium">{book.guests} Guest(s)</p>
-                <div className="mt-4 px-3 py-1 bg-gray-50 w-fit rounded-lg text-[10px] font-black uppercase text-gray-400">{book.status}</div>
+
+                {/* Display Assigned Table */}
+                {book.status === 'Confirmed' && (
+                  <div className="mt-2 text-green-600 font-black text-xs uppercase bg-green-50 px-3 py-1 rounded-lg w-fit">
+                    Table Assigned: {book.tableNumber || 'Please ask counter'}
+                  </div>
+                )}
+
+                {/* Status and Cancel Button */}
+                <div className="flex justify-between items-center mt-4">
+                  <div className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${book.status === 'Confirmed' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                    {book.status}
+                  </div>
+
+                  {book.status === 'Pending' && (
+                    <button
+                      onClick={() => handleCancelBooking(book._id)}
+                      className="text-red-500 text-xs font-bold hover:underline"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -257,54 +324,58 @@ const Profile = () => {
       </div>
 
       {/* --- SECURE PAYMENT MODAL --- */}
+      {/* --- REPLACED PAYMENT MODAL --- */}
       {showPayModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-gray-900/80 backdrop-blur-md">
           <div className="bg-white p-10 rounded-[3rem] w-full max-w-sm text-center shadow-2xl relative">
+            <button onClick={() => { setShowPayModal(null); setPaymentMode(null); }} className="absolute top-6 right-6 text-gray-400 hover:text-red-500"><X /></button>
 
-            {paymentStep === 'qr' ? (
+            {/* 1. SELECTION SCREEN */}
+            {!paymentMode && (
               <>
-                <button onClick={() => setShowPayModal(null)} className="absolute top-6 right-6 text-gray-400 hover:text-red-500"><X /></button>
-                <h3 className="text-2xl font-black italic mb-2 uppercase">Scan & <span className="text-orange-600">Pay</span></h3>
-                <p className="text-xs font-bold text-gray-400 mb-6 italic">Total Due: ₹{showPayModal.totalAmount || showPayModal.totalPrice}</p>
-
-                <div className="bg-gray-50 p-6 rounded-[2.5rem] border-2 border-dashed border-orange-200 mb-6 flex justify-center shadow-inner">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=harsh6@okhdfcbank%26pn=YariDostiCafe%26am=${showPayModal.totalAmount || showPayModal.totalPrice}%26cu=INR`}
-                    alt="UPI QR"
-                    className="w-40 h-40"
-                  />
+                <h3 className="text-2xl font-black italic mb-2 uppercase">Payment Method</h3>
+                <p className="text-xs font-bold text-gray-400 mb-6 uppercase">Total: ₹{showPayModal.totalAmount || showPayModal.totalPrice}</p>
+                <div className="flex flex-col gap-3">
+                  <button onClick={() => setPaymentMode('QR')} className="w-full p-4 bg-orange-600 text-white rounded-2xl font-black hover:bg-black transition-all">PAY ONLINE (QR)</button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Trigger the backend to generate and send the email
+                        await API.post(`/order/${showPayModal._id}/send-otp`);
+                        setPaymentMode('COD');
+                        alert("OTP has been sent to your email!");
+                      } catch (err) {
+                        alert("Failed to send OTP. Please try again.");
+                      }
+                    }}
+                    className="w-full p-4 bg-gray-100 text-gray-800 rounded-2xl font-black hover:bg-gray-200 transition-all"
+                  >
+                    CASH ON DELIVERY
+                  </button>
                 </div>
-
-                <div className="text-left mb-6">
-                  <label className="text-[10px] font-black text-gray-400 uppercase ml-2">UPI Transaction ID / UTR No.</label>
-                  <input
-                    type="text"
-                    placeholder="Enter 12-digit Ref No."
-                    value={txnId}
-                    onChange={(e) => setTxnId(e.target.value)}
-                    className="w-full mt-1 p-4 bg-gray-100 border-none rounded-2xl font-bold focus:ring-2 ring-orange-500 outline-none text-sm"
-                  />
-                </div>
-
-                <button
-                  onClick={() => handleConfirmPayment(showPayModal._id)}
-                  className="w-full py-5 bg-orange-600 text-white rounded-[2rem] font-black shadow-xl hover:bg-gray-900 transition-all flex items-center justify-center gap-2"
-                >
-                  <CheckCircle size={18} /> SUBMIT PAYMENT
-                </button>
-                <p className="mt-4 text-[9px] text-gray-400 font-medium px-4">Wait for admin verification to unlock your official bill.</p>
               </>
-            ) : (
-              <div className="py-10">
-                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle size={48} />
+            )}
+
+            {/* 2. EXISTING QR PAYMENT BLOCK */}
+            {paymentMode === 'QR' && (
+              <>
+                <h3 className="text-2xl font-black italic mb-2 uppercase">Scan & <span className="text-orange-600">Pay</span></h3>
+                <div className="bg-gray-50 p-6 rounded-[2.5rem] border-2 border-dashed border-orange-200 mb-6 flex justify-center shadow-inner">
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=vishvashah64@okhdfcbank%26pn=YariDostiCafe%26am=${showPayModal.totalAmount || showPayModal.totalPrice}%26cu=INR`} alt="UPI QR" className="w-40 h-40" />
                 </div>
-                <h3 className="text-2xl font-black mb-2 uppercase">Submitted!</h3>
-                <p className="text-gray-500 font-bold px-4 text-sm">Transaction verification is in progress.</p>
-                <div className="mt-8 flex justify-center">
-                  <Loader2 className="animate-spin text-orange-200" size={32} />
-                </div>
-              </div>
+                <input type="text" placeholder="Enter 12-digit Ref No." value={txnId} onChange={(e) => setTxnId(e.target.value)} className="w-full mb-4 p-4 bg-gray-100 rounded-2xl font-bold text-sm" />
+                <button onClick={() => handleConfirmPayment(showPayModal._id)} className="w-full py-4 bg-orange-600 text-white rounded-[2rem] font-black">SUBMIT PAYMENT</button>
+              </>
+            )}
+
+            {/* 3. NEW COD OTP SCREEN */}
+            {paymentMode === 'COD' && (
+              <>
+                <h3 className="text-2xl font-black italic mb-2 uppercase">Verify COD</h3>
+                <p className="text-xs font-bold text-gray-400 mb-6">Enter the OTP sent to your email.</p>
+                <input type="text" maxLength={6} placeholder="000000" onChange={(e) => setOtp(e.target.value)} className="w-full mb-6 p-4 bg-gray-100 rounded-2xl text-center text-2xl font-black tracking-[1em]" />
+                <button onClick={handleCodVerify} className="w-full py-4 bg-green-600 text-white rounded-[2rem] font-black">CONFIRM ORDER</button>
+              </>
             )}
           </div>
         </div>

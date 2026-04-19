@@ -3,7 +3,8 @@ import API from '../scripts/api';
 import {
   TrendingUp, ShoppingBag, CheckCircle,
   Clock, DollarSign, MessageSquare, Star, ChevronRight,
-  BarChart3, Plus, Trash2, Edit3, Upload, Utensils, Hash, Loader2, Check
+  BarChart3, Plus, Trash2, Edit3, Upload, Utensils, Hash, Loader2, Check,
+  Calendar
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -13,6 +14,8 @@ import {
 const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
+  const [bookings, setBookings] = useState([]); // Book the table
+  const [tableInputs, setTableInputs] = useState({});
   const [view, setView] = useState('orders');
   const [loading, setLoading] = useState(true);
 
@@ -22,14 +25,16 @@ const AdminDashboard = () => {
   // --- 1. DATA FETCHING ---
   const fetchData = async () => {
     try {
-      const [orderRes, menuRes] = await Promise.all([
+      const [orderRes, menuRes, bookingRes] = await Promise.all([
         API.get('/order/all'),
-        API.get('/menu')
+        API.get('/menu'),
+        API.get('/booking/all') // Add this
       ]);
       setOrders(orderRes.data);
       setMenuItems(menuRes.data);
+      setBookings(bookingRes.data); // Add this
     } catch (err) {
-      console.error("Error fetching admin data", err);
+      console.error("Error fetching data", err);
     } finally {
       setLoading(false);
     }
@@ -99,7 +104,7 @@ const AdminDashboard = () => {
       alert("Failed to save menu item");
     }
   };
-
+  
   const deleteMenuItem = async (id) => {
     if (window.confirm("Delete this item forever?")) {
       try {
@@ -109,6 +114,14 @@ const AdminDashboard = () => {
         alert("Delete failed");
       }
     }
+  };
+
+  // Update booking status 
+  const updateBookingStatus = async (bookingId, newStatus, tableNumber) => {
+    try {
+      await API.put(`/booking/${bookingId}/status`, { status: newStatus, tableNumber });
+      fetchData();
+    } catch (err) { alert("Failed"); }
   };
 
   const startEdit = (item) => {
@@ -151,6 +164,7 @@ const AdminDashboard = () => {
         <nav className="space-y-2">
           <AdminNavLink active={view === 'overview'} onClick={() => setView('overview')} icon={<TrendingUp size={20} />} label="Analytics" />
           <AdminNavLink active={view === 'orders'} onClick={() => setView('orders')} icon={<ShoppingBag size={20} />} label="Live Orders" />
+          <AdminNavLink active={view === 'bookings'} onClick={() => setView('bookings')} icon={<Calendar size={20} />} label="Bookings" /> {/* ADDED */}
           <AdminNavLink active={view === 'menu'} onClick={() => setView('menu')} icon={<Utensils size={20} />} label="Manage Menu" />
           <AdminNavLink active={view === 'feedback'} onClick={() => setView('feedback')} icon={<MessageSquare size={20} />} label="User Reviews" />
         </nav>
@@ -250,6 +264,58 @@ const AdminDashboard = () => {
                           <option value="Completed">Completed</option>
                           <option value="Cancelled">Cancelled</option>
                         </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* BOOKINGS VIEW - The part you requested */}
+          {view === 'bookings' && (
+            <div className="overflow-x-auto">
+              <HeaderTitle title="Table Bookings" subtitle="Manage table assignments" icon={<Calendar size={24} />} />
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="p-6 text-[10px] font-black uppercase text-gray-400">Customer</th>
+                    <th className="p-6 text-[10px] font-black uppercase text-gray-400">Time</th>
+                    <th className="p-6 text-[10px] font-black uppercase text-gray-400">Guests</th>
+                    <th className="p-6 text-[10px] font-black uppercase text-gray-400">Status</th>
+                    <th className="p-6 text-[10px] font-black uppercase text-gray-400">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {bookings.map(booking => (
+                    <tr key={booking._id} className="hover:bg-gray-50/50">
+                      <td className="p-6 font-bold">{booking.userId?.name || 'Unknown'}</td>
+                      <td className="p-6 text-sm">{booking.date} - {booking.time}</td>
+                      <td className="p-6">{booking.guests}</td>
+                      <td className="p-6">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${booking.status === 'Confirmed' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                          {booking.status}
+                        </span>
+                      </td>
+                      <td className="p-6">
+                        {booking.status === 'Pending' ? (
+                          <div className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              placeholder="Table #"
+                              className="w-16 p-2 rounded-lg border text-xs"
+                              onChange={(e) => setTableInputs({ ...tableInputs, [booking._id]: e.target.value })}
+                            />
+                            <button
+                              onClick={() => updateBookingStatus(booking._id, 'Confirmed', tableInputs[booking._id])}
+                              className="bg-green-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-green-700"
+                            >Confirm</button>
+                          </div>
+                        ) : (
+                          <span className="font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
+                            Table: {booking.tableNumber || "N/A"}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
