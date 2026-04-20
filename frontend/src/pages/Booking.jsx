@@ -37,6 +37,14 @@ const Booking = () => {
     e.preventDefault();
     if (!user) { setError("Please login to book a table."); return; }
 
+    // Logic Fix: Prevent submission if date is somehow selected in the past
+    const todayCheck = new Date();
+    todayCheck.setHours(0, 0, 0, 0);
+    if (selectedDate < todayCheck) {
+      setError("Cannot book a table for a past date.");
+      return;
+    }
+
     setLoading(true);
     try {
       const year = selectedDate.getFullYear();
@@ -133,7 +141,12 @@ const Booking = () => {
                   {Array.from({ length: daysInMonth }).map((_, i) => {
                     const day = i + 1;
                     const dateObj = new Date(currYear, currMonth, day);
-                    const isPast = dateObj < today;
+
+                    // Logic Fix: Strictly normalize for mobile date comparison
+                    const compareDate = new Date(dateObj);
+                    compareDate.setHours(0, 0, 0, 0);
+
+                    const isPast = compareDate < today;
                     const isSelected = selectedDate.toDateString() === dateObj.toDateString();
 
                     return (
@@ -141,9 +154,9 @@ const Booking = () => {
                         key={day}
                         type="button"
                         disabled={isPast}
-                        onClick={() => setSelectedDate(dateObj)}
+                        onClick={() => !isPast && setSelectedDate(dateObj)}
                         className={`aspect-square flex items-center justify-center text-xs font-bold rounded-xl transition-all
-                          ${isPast ? "text-gray-200 cursor-not-allowed" : "hover:bg-orange-100 text-gray-700"}
+                          ${isPast ? "text-gray-200 cursor-not-allowed opacity-40" : "hover:bg-orange-100 text-gray-700"}
                           ${isSelected ? "bg-orange-600 text-white shadow-lg shadow-orange-100 scale-105" : ""}
                         `}
                       >
