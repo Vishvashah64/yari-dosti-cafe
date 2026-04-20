@@ -373,123 +373,74 @@ const Profile = () => {
           <div className="bg-white p-10 rounded-[3rem] w-full max-w-sm text-center shadow-2xl relative">
             <button onClick={() => { setShowPayModal(null); setPaymentMode(null); }} className="absolute top-6 right-6 text-gray-400 hover:text-red-500"><X /></button>
 
-            {/* 1. SELECTION SCREEN */}
             {!paymentMode && (
               <>
                 <h3 className="text-2xl font-black italic mb-2 uppercase">Payment Method</h3>
-                <p className="text-xs font-bold text-gray-400 mb-6 uppercase">Total: ₹{showPayModal.totalAmount || showPayModal.totalPrice}</p>
+                <p className="text-xs font-bold text-gray-400 mb-6 uppercase tracking-widest">Total: ₹{showPayModal.totalAmount || showPayModal.totalPrice}</p>
                 <div className="flex flex-col gap-3">
-                  <button onClick={() => setPaymentMode('QR')} className="w-full p-4 bg-orange-600 text-white rounded-2xl font-black hover:bg-black transition-all">PAY ONLINE (QR)</button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        // Trigger the backend to generate and send the email
-                        await API.post(`/order/${showPayModal._id}/send-otp`);
-                        setPaymentMode('COD');
-                        alert("OTP has been sent to your email!");
-                      } catch (err) {
-                        alert("Failed to send OTP. Please try again.");
-                      }
-                    }}
-                    className="w-full p-4 bg-gray-100 text-gray-800 rounded-2xl font-black hover:bg-gray-200 transition-all"
-                  >
-                    CASH ON DELIVERY
-                  </button>
+                  <button onClick={() => setPaymentMode('QR')} className="w-full p-4 bg-orange-600 text-white rounded-2xl font-black hover:bg-black transition-all">PAY VIA ONLINE UPI</button>
+                  <button onClick={async () => {
+                    try {
+                      await API.post(`/order/${showPayModal._id}/send-otp`);
+                      setPaymentMode('COD');
+                    } catch (err) { alert("Failed to send OTP."); }
+                  }} className="w-full p-4 bg-gray-100 text-gray-800 rounded-2xl font-black">CASH ON DELIVERY</button>
                 </div>
               </>
             )}
 
-            {/* 2. UPDATED ONLINE PAYMENT BLOCK */}
             {paymentMode === 'QR' && (
-              <>
-                <h3 className="text-2xl font-black italic mb-2 uppercase text-center">
-                  Pay <span className="text-orange-600">Online</span>
-                </h3>
-                <p className="text-[10px] font-bold text-gray-400 mb-6 uppercase text-center">
-                  Total: ₹{showPayModal.totalAmount || showPayModal.totalPrice}
-                </p>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <h3 className="text-2xl font-black italic mb-2 uppercase">Secure <span className="text-orange-600">UPI</span></h3>
+                <p className="text-[10px] font-bold text-gray-400 mb-6 uppercase tracking-widest">Total Amount: ₹{showPayModal.totalAmount || showPayModal.totalPrice}</p>
 
-                {/* Direct UPI Intent Buttons */}
-                <div className="grid grid-cols-1 gap-3 mb-6">
-                  <p className="text-[10px] font-black text-gray-400 uppercase text-left ml-2">Open Payment App</p>
+                {/* Direct Payment Button */}
+                {(() => {
+                  const upiId = "vishvashah64@okhdfcbank";
+                  const name = "Yari Dosti Cafe";
+                  const amount = showPayModal.totalAmount || showPayModal.totalPrice;
+                  const note = `Order_${showPayModal._id.slice(-6)}`;
+                  // Enhanced UPI Link for reliability
+                  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}&tr=${showPayModal._id.slice(-6)}`;
 
-                  {(() => {
-                    // Correctly encoded UPI string
-                    const upiId = "vishvashah64@okhdfcbank";
-                    const name = "Yari Dosti Cafe";
-                    const amount = showPayModal.totalAmount || showPayModal.totalPrice;
-                    const note = `Order_${showPayModal._id.slice(-6)}`;
+                  return (
+                    <div className="mb-6">
+                      <a href={upiLink} className="flex items-center justify-between p-4 bg-gray-900 text-white rounded-2xl hover:bg-orange-600 transition-all group shadow-lg">
+                        <div className="text-left">
+                          <span className="block font-black text-xs uppercase">Pay Directly</span>
+                          <span className="text-[9px] text-gray-400 group-hover:text-white uppercase font-bold">Opens GPay / PhonePe / Paytm</span>
+                        </div>
+                        <IndianRupee size={20} />
+                      </a>
+                    </div>
+                  );
+                })()}
 
-                    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
-
-                    return (
-                      <div className="flex flex-col gap-2">
-                        {/* This anchor tag handles the intent for Mobile */}
-                        <a
-                          href={upiLink}
-                          target="_self"
-                          className="flex items-center justify-between p-4 bg-[#f2f2f2] active:scale-95 hover:bg-white border border-transparent hover:border-orange-500 rounded-2xl transition-all shadow-sm group"
-                        >
-                          <div className="flex flex-col items-start">
-                            <span className="font-black text-gray-800 uppercase text-xs">Pay via UPI Apps</span>
-                            <span className="text-[9px] text-gray-400 font-bold uppercase">GPay, PhonePe, Paytm</span>
-                          </div>
-                          <div className="flex gap-2 bg-white p-2 rounded-lg shadow-inner">
-                            <img src="https://www.vectorlogo.zone/logos/google/google-tile.svg" className="h-4 w-4" alt="GPay" />
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" className="h-4 w-4" alt="PhonePe" />
-                            <img src="https://img.icons8.com/color/48/paytm.png" className="h-4 w-4" alt="Paytm" />
-                          </div>
-                        </a>
-                        <p className="text-[8px] text-gray-400 italic mt-1 text-center">
-                          (If on Desktop, please use the QR code below)
-                        </p>
-                      </div>
-                    );
-                  })()}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="flex-1 h-[1px] bg-gray-100"></div>
+                  <span className="text-[9px] font-black text-gray-300 uppercase">Or Scan Below</span>
+                  <div className="flex-1 h-[1px] bg-gray-100"></div>
                 </div>
 
-                <div className="relative flex items-center mb-6">
-                  <div className="flex-grow border-t border-gray-200"></div>
-                  <span className="flex-shrink mx-4 text-[10px] font-black text-gray-400 uppercase">Or Scan QR</span>
-                  <div className="flex-grow border-t border-gray-200"></div>
-                </div>
-
-                {/* QR Code fallback */}
-                <div className="bg-white p-4 rounded-[2.5rem] border-2 border-dashed border-orange-200 mb-6 flex justify-center shadow-lg relative overflow-hidden">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=vishvashah64@okhdfcbank%26pn=YariDostiCafe%26am=${showPayModal.totalAmount || showPayModal.totalPrice}%26cu=INR`}
-                    alt="UPI QR"
-                    className="w-36 h-36"
-                  />
+                {/* QR Code */}
+                <div className="bg-white p-4 rounded-[2rem] border-2 border-dashed border-orange-100 mb-6 flex justify-center">
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=vishvashah64@okhdfcbank%26pn=YariDostiCafe%26am=${showPayModal.totalAmount || showPayModal.totalPrice}%26cu=INR`} className="w-32 h-32" alt="QR" />
                 </div>
 
                 <div className="space-y-3">
-                  <p className="text-[10px] font-black text-gray-400 uppercase text-left ml-2">Step 2: Enter UTR / Ref No.</p>
-                  <input
-                    type="text"
-                    placeholder="12-digit Transaction ID"
-                    value={txnId}
-                    onChange={(e) => setTxnId(e.target.value)}
-                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-orange-500 transition-all text-center"
-                  />
-                  <button
-                    onClick={() => handleConfirmPayment(showPayModal._id)}
-                    className="w-full py-4 bg-orange-600 text-white rounded-[2rem] font-black hover:bg-black shadow-xl shadow-orange-100 transition-all uppercase tracking-tighter"
-                  >
-                    Verify & Confirm Order
-                  </button>
+                  <input type="text" placeholder="12-Digit Transaction ID" value={txnId} onChange={(e) => setTxnId(e.target.value)} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-center outline-none focus:ring-2 focus:ring-orange-500" />
+                  <button onClick={() => handleConfirmPayment(showPayModal._id)} className="w-full py-4 bg-orange-600 text-white rounded-[2rem] font-black uppercase tracking-tighter">Confirm Payment</button>
                 </div>
-              </>
+              </div>
             )}
 
-            {/* 3. NEW COD OTP SCREEN */}
             {paymentMode === 'COD' && (
-              <>
+              <div className="animate-in fade-in duration-300">
                 <h3 className="text-2xl font-black italic mb-2 uppercase">Verify COD</h3>
-                <p className="text-xs font-bold text-gray-400 mb-6">Enter the OTP sent to your email.</p>
-                <input type="text" maxLength={6} placeholder="000000" onChange={(e) => setOtp(e.target.value)} className="w-full mb-6 p-4 bg-gray-100 rounded-2xl text-center text-2xl font-black tracking-[1em]" />
+                <p className="text-xs font-bold text-gray-400 mb-6">Enter OTP sent to your email.</p>
+                <input type="text" maxLength={6} placeholder="000000" onChange={(e) => setOtp(e.target.value)} className="w-full mb-6 p-4 bg-gray-100 rounded-2xl text-center text-2xl font-black tracking-[0.5em]" />
                 <button onClick={handleCodVerify} className="w-full py-4 bg-green-600 text-white rounded-[2rem] font-black">CONFIRM ORDER</button>
-              </>
+              </div>
             )}
           </div>
         </div>
